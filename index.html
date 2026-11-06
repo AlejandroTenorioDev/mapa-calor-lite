@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa de calor</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="estilos.css?v=3" />
+  <link rel="stylesheet" href="estilos.css?v=6" />
 </head>
 <body>
+  <div class="vista">
   <aside class="panel">
     <header>
       <p class="marca">Censo 2026</p>
@@ -33,13 +34,36 @@
     </div>
     <div id="metricas" class="metricas"></div>
     <p id="aviso" class="aviso"></p>
+  </aside>
+  <main id="mapa"></main>
+  </div>
+  <section class="tabla-seccion">
     <div class="tabla-wrap">
       <table>
+        <colgroup>
+          <col style="width:16%" />
+          <col style="width:18%" />
+          <col style="width:6%" />
+          <col style="width:10%" />
+          <col style="width:8%" />
+          <col style="width:8%" />
+          <col style="width:8%" />
+          <col style="width:10%" />
+          <col style="width:8%" />
+          <col style="width:8%" />
+        </colgroup>
         <thead>
           <tr>
             <th>Puesto</th>
-            <th>Personas</th>
-            <th>Mesas</th>
+            <th>Dirección</th>
+            <th>Zona</th>
+            <th>Comuna</th>
+            <th class="num">Mesas con personas</th>
+            <th class="num">Personas</th>
+            <th class="num">% del municipio</th>
+            <th class="num">Potencial DIVPOL</th>
+            <th class="num">Mesas DIVPOL</th>
+            <th class="num">Cobertura %</th>
           </tr>
         </thead>
         <tbody id="tabla"></tbody>
@@ -50,9 +74,8 @@
       Límites de Cali: Departamento Administrativo de Planeación, Alcaldía de Cali, IDESC, licencia CC BY-SA 4.0.
       Los puntos de Cali son aproximados. Mapa base: OpenFreeMap y OpenStreetMap.
     </footer>
-  </aside>
-  <main id="mapa"></main>
+  </section>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

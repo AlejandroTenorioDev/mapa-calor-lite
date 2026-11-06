@@ -19,18 +19,26 @@ html, body {
 
 body {
   display: flex;
-  min-height: 100%;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.vista {
+  display: flex;
+  flex: 1 1 58%;
+  min-height: 280px;
 }
 
 .panel {
   width: var(--panel);
   flex: 0 0 var(--panel);
-  height: 100vh;
+  height: auto;
   display: flex;
   flex-direction: column;
   background: #fff;
   border-right: 1px solid var(--linea);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .panel header, .controles, .metricas, .aviso, footer {
@@ -94,30 +102,53 @@ select, input {
 
 .aviso { margin: 0 0 8px; color: var(--suave); font-size: 12px; min-height: 1.2em; }
 
-.tabla-wrap { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid var(--linea); }
+.tabla-seccion {
+  flex: 1 1 42%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-top: 1px solid var(--linea);
+}
 
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tabla-wrap { flex: 1; min-height: 0; overflow: auto; }
 
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--fondo); vertical-align: top; }
+table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
 
-th { position: sticky; top: 0; background: #fff; color: var(--suave); font-weight: 600; }
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--fondo);
+  vertical-align: top;
+  background: #fff;
+}
 
-td.num, th:nth-child(n+2) { text-align: right; white-space: nowrap; }
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--suave);
+  font-weight: 600;
+}
 
-tr.activa { background: #eef6f2; cursor: pointer; }
+td.num, th.num { text-align: right; }
+
+tr.activa td { background: #eef6f2; }
 tbody tr { cursor: pointer; }
-tbody tr:hover { background: #f4faf7; }
+tbody tr:hover td { background: #f4faf7; }
 
-.puesto small { display: block; color: var(--suave); }
+.puesto small { display: block; color: var(--suave); white-space: normal; }
 
-footer { flex: none; background: #fff; padding: 12px 16px 16px; color: var(--suave); font-size: 11px; line-height: 1.4; border-top: 1px solid var(--linea); }
+footer { flex: none; background: #fff; padding: 8px 16px 12px; color: var(--suave); font-size: 11px; line-height: 1.4; border-top: 1px solid var(--linea); }
 
-#mapa { flex: 1; min-height: 100vh; }
+#mapa { flex: 1; min-height: 0; height: auto; }
 
 .maplibregl-popup-content { font: 13px "Segoe UI", system-ui, sans-serif; }
 
 @media (max-width: 800px) {
-  body { flex-direction: column; }
-  .panel { width: 100%; flex-basis: auto; min-height: 0; max-height: 48vh; }
-  #mapa { min-height: 52vh; }
+  body { height: auto; overflow: auto; }
+  .vista { flex: none; flex-direction: column; height: 78vh; }
+  .panel { width: 100%; flex-basis: auto; max-height: 46%; }
+  #mapa { min-height: 54%; }
+  .tabla-seccion { flex: none; height: 55vh; }
 }

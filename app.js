@@ -7,6 +7,11 @@ function miles(n) {
   return Number(n || 0).toLocaleString("es-CO");
 }
 
+function decimal(n) {
+  if (n == null || Number.isNaN(n)) return "";
+  return Number(n).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
 function texto(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
@@ -453,14 +458,31 @@ function mostrarTabla() {
   } else {
     aviso.textContent = "Elige un departamento en el mapa o en la lista.";
   }
+  const totalesMpio = new Map();
+  datos.heat.puestos.forEach((p, i) => {
+    const n = conteo(i)[0];
+    if (n) totalesMpio.set(p.municipio, (totalesMpio.get(p.municipio) || 0) + n);
+  });
   const cuerpo = document.getElementById("tabla");
   const tope = estado.depto ? filas : filas.slice(0, 40);
-  cuerpo.innerHTML = tope.map((p) => `
+  cuerpo.innerHTML = tope.map((p) => {
+    const totalMpio = totalesMpio.get(p.municipio) || 0;
+    const pctMpio = totalMpio ? (p.personas / totalMpio) * 100 : null;
+    const cobertura = p.potencial ? (p.personas / p.potencial) * 100 : null;
+    return `
     <tr data-i="${p.i}" class="${estado.puesto === p.puesto ? "activa" : ""}">
-      <td class="puesto">${texto(p.puesto)}<small>${texto([p.municipio, p.comuna, p.direccion].filter(Boolean).join(" · "))}</small></td>
-      <td class="num">${miles(p.personas)}</td>
+      <td class="puesto">${texto(p.puesto)}<small>${texto(p.municipio || "")}</small></td>
+      <td>${texto(p.direccion || "")}</td>
+      <td>${texto(p.zona || "")}</td>
+      <td>${texto(p.comuna || "")}</td>
       <td class="num">${miles(p.mesas)}</td>
-    </tr>`).join("");
+      <td class="num">${miles(p.personas)}</td>
+      <td class="num">${decimal(pctMpio)}</td>
+      <td class="num">${p.potencial ? miles(p.potencial) : ""}</td>
+      <td class="num">${p.mesas_divpol ? miles(p.mesas_divpol) : ""}</td>
+      <td class="num">${decimal(cobertura)}</td>
+    </tr>`;
+  }).join("");
   if (!estado.depto && filas.length > 40 && !document.getElementById("buscar").value.trim()) {
     aviso.textContent = "Mostrando 40 puestos. Entra a un departamento para ver el listado completo.";
   }
