@@ -1,4 +1,4 @@
-const estado = { depto: null, muni: null, zona: null, puesto: null };
+const estado = { lider: null, depto: null, muni: null, zona: null, puesto: null };
 let datos, mapa, popup;
 
 const COLORES = ["#006837", "#1a9850", "#66bd63", "#a6d96a", "#d9ef8b", "#fee08b", "#fdae61", "#f46d43", "#d73027", "#a50026"];
@@ -57,7 +57,10 @@ async function cargar() {
     ft.properties.personas = personas;
     ft.properties.color = color(personas, maxDepto);
   });
-  datos = { heat, pais, muni, cali, porDepto };
+  datos = { heat, pais, muni, cali, porDepto, corte: new Map(), liderPintado: undefined };
+  const pedido = new URL(location.href).searchParams.get("lider");
+  estado.lider = (heat.lideres || []).some((l) => l.id === pedido) ? pedido : null;
+  activarCorte();
   aplicarHash();
   iniciarMapa();
   window.addEventListener("hashchange", aplicarHash);
@@ -174,15 +177,47 @@ function municipiosDelDepto() {
   return datos.muni.features.filter((ft) => ft.properties.DPTO_CNMBR === clave);
 }
 
-function puestosVisibles() {
-  return datos.heat.puestos.filter((p) => {
-    if (estado.depto && p.depto !== estado.depto) return false;
-    if (estado.muni && p.municipio !== estado.muni && p.municipio_geo !== estado.muni) return false;
-    if (estado.zona && p.zona_id !== estado.zona) return false;
-    const q = document.getElementById("buscar").value.trim().toLowerCase();
-    if (!q) return true;
-    return `${p.puesto} ${p.direccion} ${p.comuna}`.toLowerCase().includes(q);
+function activarCorte() {
+  const corte = new Map();
+  const filas = estado.lider && datos.heat.cortes ? datos.heat.cortes[estado.lider] : null;
+  if (filas) {
+    filas.forEach(([i, personas, mesas]) => corte.set(i, [personas, mesas]));
+  }
+  datos.corte = corte;
+}
+
+function conteo(i) {
+  if (!estado.lider) {
+    const p = datos.heat.puestos[i];
+    return [p.personas, p.mesas];
+  }
+  return datos.corte.get(i) || [0, 0];
+}
+
+function departamentosVista() {
+  const acc = new Map();
+  datos.heat.puestos.forEach((p, i) => {
+    const personas = conteo(i)[0];
+    if (personas) acc.set(p.depto, (acc.get(p.depto) || 0) + personas);
   });
+  return [...acc.entries()]
+    .map(([id, personas]) => ({ id, personas }))
+    .sort((a, b) => b.personas - a.personas);
+}
+
+function puestosVisibles() {
+  const q = document.getElementById("buscar").value.trim().toLowerCase();
+  const out = [];
+  datos.heat.puestos.forEach((p, i) => {
+    const [personas, mesas] = conteo(i);
+    if (!personas) return;
+    if (estado.depto && p.depto !== estado.depto) return;
+    if (estado.muni && p.municipio !== estado.muni && p.municipio_geo !== estado.muni) return;
+    if (estado.zona && p.zona_id !== estado.zona) return;
+    if (q && !`${p.puesto} ${p.direccion} ${p.comuna}`.toLowerCase().includes(q)) return;
+    out.push({ ...p, personas, mesas, i });
+  });
+  return out;
 }
 
 function esCali() {
@@ -220,8 +255,14 @@ function elegirZona(id) {
 
 function syncHash() {
   const partes = [estado.depto, estado.muni, estado.zona].filter(Boolean).map(encodeURIComponent);
-  const hash = partes.length ? "#/" + partes.join("/") : "#";
-  if (location.hash !== hash) history.replaceState(null, "", hash);
+  const hash = partes.length ? "#/" + partes.join("/") : "";
+  const url = new URL(location.href);
+  if (estado.lider) url.searchParams.set("lider", estado.lider);
+  else url.searchParams.delete("lider");
+  const next = url.pathname + url.search + hash;
+  if (location.pathname + location.search + location.hash !== next) {
+    history.replaceState(null, "", next);
+  }
 }
 
 function aplicarHash() {
@@ -233,19 +274,38 @@ function aplicarHash() {
 }
 
 function pintarControles() {
+  const selL = document.getElementById("sel-lider");
   const selD = document.getElementById("sel-depto");
   const selM = document.getElementById("sel-muni");
   const selZ = document.getElementById("sel-zona");
-  selD.innerHTML = `<option value="">Colombia</option>` + datos.heat.departamentos
-    .map((d) => `<option value="${d.id}">${d.id} (${miles(d.personas)})</option>`).join("");
-  const munis = datos.heat.municipios.filter((m) => !estado.depto || m.depto === estado.depto);
+  selL.innerHTML = `<option value="">Todos</option>` + (datos.heat.lideres || [])
+    .map((l) => `<option value="${texto(l.id)}">${texto(l.nombre)} (${miles(l.personas)})</option>`).join("");
+  selL.value = estado.lider || "";
+  let deps = departamentosVista();
+  if (estado.depto && !deps.some((d) => d.id === estado.depto)) {
+    deps = [{ id: estado.depto, personas: 0 }, ...deps];
+  }
+  selD.innerHTML = `<option value="">Colombia</option>` + deps
+    .map((d) => `<option value="${texto(d.id)}">${texto(d.id)} (${miles(d.personas)})</option>`).join("");
+  const munisAcc = new Map();
+  datos.heat.puestos.forEach((p, i) => {
+    if (estado.depto && p.depto !== estado.depto) return;
+    const personas = conteo(i)[0];
+    if (!personas && p.municipio !== estado.muni) return;
+    const prev = munisAcc.get(p.municipio) || 0;
+    munisAcc.set(p.municipio, prev + personas);
+  });
+  const munis = [...munisAcc.entries()].sort((a, b) => b[1] - a[1]);
   selM.innerHTML = `<option value="">Todos</option>` + munis
-    .map((m) => `<option value="${m.nombre}">${m.nombre} (${miles(m.personas)})</option>`).join("");
+    .map(([nombre, personas]) => `<option value="${texto(nombre)}">${texto(nombre)} (${miles(personas)})</option>`).join("");
   selM.disabled = !estado.depto;
   const zonas = {};
   if (esCali()) {
-    datos.heat.puestos.filter((p) => normLocal(p.municipio) === "CALI" && p.zona_id).forEach((p) => {
-      zonas[p.zona_id] = (zonas[p.zona_id] || 0) + p.personas;
+    datos.heat.puestos.forEach((p, i) => {
+      if (normLocal(p.municipio) !== "CALI" || !p.zona_id) return;
+      const personas = conteo(i)[0];
+      if (!personas && p.zona_id !== estado.zona) return;
+      zonas[p.zona_id] = (zonas[p.zona_id] || 0) + personas;
     });
   }
   const ids = Object.keys(zonas).sort();
@@ -255,6 +315,20 @@ function pintarControles() {
   selD.value = estado.depto || "";
   selM.value = estado.muni || "";
   selZ.value = estado.zona || "";
+}
+
+function pintarPais() {
+  const cuentas = {};
+  departamentosVista().forEach((d) => { cuentas[d.id] = d.personas; });
+  const valores = Object.values(cuentas);
+  const max = Math.max(1, ...(valores.length ? valores : [0]));
+  datos.pais.features.forEach((ft) => {
+    const personas = cuentas[ft.properties.NOMBRE_DPT] || 0;
+    ft.properties.personas = personas;
+    ft.properties.color = color(personas, max);
+  });
+  mapa.getSource("pais").setData(datos.pais);
+  datos.liderPintado = estado.lider || "";
 }
 
 function nombreZona(id) {
@@ -268,6 +342,7 @@ function dibujar() {
   pintarMigas();
   mostrarTabla();
   if (!mapa.getSource("muni")) return;
+  if (datos.liderPintado !== (estado.lider || "")) pintarPais();
 
   const verPais = !estado.depto;
   const verCali = esCali();
@@ -286,8 +361,10 @@ function dibujar() {
 
   const feats = municipiosDelDepto();
   const cuentas = {};
-  datos.heat.municipios.filter((m) => m.depto === estado.depto).forEach((m) => {
-    if (m.geo) cuentas[m.geo] = m.personas;
+  datos.heat.puestos.forEach((p, i) => {
+    if (p.depto !== estado.depto || !p.municipio_geo) return;
+    const personas = conteo(i)[0];
+    if (personas) cuentas[p.municipio_geo] = (cuentas[p.municipio_geo] || 0) + personas;
   });
   const max = Math.max(1, ...Object.values(cuentas));
   feats.forEach((ft) => {
@@ -300,8 +377,10 @@ function dibujar() {
 
   if (verCali) {
     const porZona = {};
-    datos.heat.puestos.filter((p) => normLocal(p.municipio) === "CALI").forEach((p) => {
-      if (p.zona_id) porZona[p.zona_id] = (porZona[p.zona_id] || 0) + p.personas;
+    datos.heat.puestos.forEach((p, i) => {
+      if (normLocal(p.municipio) !== "CALI" || !p.zona_id) return;
+      const personas = conteo(i)[0];
+      if (personas) porZona[p.zona_id] = (porZona[p.zona_id] || 0) + personas;
     });
     const maxZ = Math.max(1, ...Object.values(porZona));
     datos.cali.features.forEach((ft) => {
@@ -311,13 +390,18 @@ function dibujar() {
       ft.properties.sel = estado.zona === ft.properties.zona_id ? 1 : 0;
     });
     mapa.getSource("zonas").setData(datos.cali);
-    const puntos = datos.heat.puestos
-      .filter((p) => normLocal(p.municipio) === "CALI" && p.lat && (!estado.zona || p.zona_id === estado.zona))
-      .map((p) => ({
+    const puntos = [];
+    datos.heat.puestos.forEach((p, i) => {
+      if (normLocal(p.municipio) !== "CALI" || !p.lat) return;
+      if (estado.zona && p.zona_id !== estado.zona) return;
+      const personas = conteo(i)[0];
+      if (!personas) return;
+      puntos.push({
         type: "Feature",
-        properties: { puesto: p.puesto, personas: p.personas },
+        properties: { puesto: p.puesto, personas },
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      }));
+      });
+    });
     mapa.getSource("puntos").setData({ type: "FeatureCollection", features: puntos });
     const zona = estado.zona && datos.cali.features.find((ft) => ft.properties.zona_id === estado.zona);
     encajar(zona ? [zona] : datos.cali.features, 28);
@@ -372,7 +456,7 @@ function mostrarTabla() {
   const cuerpo = document.getElementById("tabla");
   const tope = estado.depto ? filas : filas.slice(0, 40);
   cuerpo.innerHTML = tope.map((p) => `
-    <tr data-puesto="${encodeURIComponent(p.puesto)}" class="${estado.puesto === p.puesto ? "activa" : ""}">
+    <tr data-i="${p.i}" class="${estado.puesto === p.puesto ? "activa" : ""}">
       <td class="puesto">${texto(p.puesto)}<small>${texto([p.municipio, p.comuna, p.direccion].filter(Boolean).join(" · "))}</small></td>
       <td class="num">${miles(p.personas)}</td>
       <td class="num">${miles(p.mesas)}</td>
@@ -382,9 +466,9 @@ function mostrarTabla() {
   }
   cuerpo.querySelectorAll("tr").forEach((tr) => {
     tr.onclick = () => {
-      const puesto = decodeURIComponent(tr.dataset.puesto);
-      const item = datos.heat.puestos.find((p) => p.puesto === puesto);
+      const item = datos.heat.puestos[Number(tr.dataset.i)];
       if (!item) return;
+      const personas = conteo(Number(tr.dataset.i))[0];
       estado.depto = item.depto;
       estado.muni = item.municipio;
       estado.zona = item.zona_id || null;
@@ -393,12 +477,19 @@ function mostrarTabla() {
       dibujar();
       if (item.lat) {
         mapa.flyTo({ center: [item.lon, item.lat], zoom: 14 });
-        popup.setLngLat([item.lon, item.lat]).setHTML(`<b>${texto(item.puesto)}</b><br>${miles(item.personas)} personas`).addTo(mapa);
+        popup.setLngLat([item.lon, item.lat]).setHTML(`<b>${texto(item.puesto)}</b><br>${miles(personas)} personas`).addTo(mapa);
       }
     };
   });
 }
 
+document.getElementById("sel-lider").onchange = (ev) => {
+  estado.lider = ev.target.value || null;
+  estado.puesto = null;
+  activarCorte();
+  syncHash();
+  dibujar();
+};
 document.getElementById("sel-depto").onchange = (ev) => {
   estado.depto = ev.target.value || null;
   estado.muni = estado.zona = estado.puesto = null;

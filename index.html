@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa de calor</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="estilos.css?v=2" />
+  <link rel="stylesheet" href="estilos.css?v=3" />
 </head>
 <body>
   <aside class="panel">
@@ -15,6 +15,9 @@
       <nav id="migas" class="migas" aria-label="Recorrido"></nav>
     </header>
     <div class="controles">
+      <label>Líder
+        <select id="sel-lider"></select>
+      </label>
       <label>Departamento
         <select id="sel-depto"></select>
       </label>
@@ -43,13 +46,13 @@
       </table>
     </div>
     <footer>
-      Totales agregados. No hay cédulas ni nombres.
+      Totales agregados, también por líder. No hay cédulas ni nombres de votantes.
       Límites de Cali: Departamento Administrativo de Planeación, Alcaldía de Cali, IDESC, licencia CC BY-SA 4.0.
       Los puntos de Cali son aproximados. Mapa base: OpenFreeMap y OpenStreetMap.
     </footer>
   </aside>
   <main id="mapa"></main>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
