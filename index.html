@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mapa de calor</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="estilos.css?v=2" />
+</head>
+<body>
+  <aside class="panel">
+    <header>
+      <p class="marca">Censo 2026</p>
+      <h1>Mapa de calor</h1>
+      <nav id="migas" class="migas" aria-label="Recorrido"></nav>
+    </header>
+    <div class="controles">
+      <label>Departamento
+        <select id="sel-depto"></select>
+      </label>
+      <label>Municipio
+        <select id="sel-muni"></select>
+      </label>
+      <label id="lbl-zona" hidden>Comuna o corregimiento
+        <select id="sel-zona"></select>
+      </label>
+      <label>Buscar puesto
+        <input id="buscar" type="search" placeholder="Nombre o dirección" />
+      </label>
+    </div>
+    <div id="metricas" class="metricas"></div>
+    <p id="aviso" class="aviso"></p>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Puesto</th>
+            <th>Personas</th>
+            <th>Mesas</th>
+          </tr>
+        </thead>
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+    <footer>
+      Totales agregados. No hay cédulas ni nombres.
+      Límites de Cali: Departamento Administrativo de Planeación, Alcaldía de Cali, IDESC, licencia CC BY-SA 4.0.
+      Los puntos de Cali son aproximados. Mapa base: OpenFreeMap y OpenStreetMap.
+    </footer>
+  </aside>
+  <main id="mapa"></main>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
